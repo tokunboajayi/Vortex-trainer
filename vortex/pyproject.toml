@@ -5,10 +5,11 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "vortex"
 version = "0.1.0"
-description = "High-performance distributed training runtime"
+description = "High-performance distributed training runtime with Rust core and S3 integration"
 readme = "README.md"
 requires-python = ">=3.9"
 license = {text = "Apache-2.0"}
+keywords = ["pytorch", "distributed-training", "rust", "dataloader", "s3"]
 authors = [
     {name = "Vortex Team"}
 ]

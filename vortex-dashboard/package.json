@@ -2,6 +2,7 @@
   "name": "vortex-dashboard",
   "private": true,
   "version": "0.0.0",
+  "description": "Real-time mission control dashboard for Vortex distributed training",
   "type": "module",
   "scripts": {
     "dev": "vite",
