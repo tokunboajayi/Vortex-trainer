@@ -1,0 +1,189 @@
+syntax = "proto3";
+package dtrainer.v1;
+
+// Coordinator service for worker coordination
+service Coordinator {
+  // Worker lifecycle
+  rpc RegisterWorker(RegisterWorkerRequest) returns (RegisterWorkerResponse);
+  rpc Heartbeat(HeartbeatRequest) returns (HeartbeatResponse);
+  rpc DeregisterWorker(DeregisterWorkerRequest) returns (DeregisterWorkerResponse);
+  
+  // Shard assignment
+  rpc GetShardAssignment(GetShardAssignmentRequest) returns (GetShardAssignmentResponse);
+  rpc ReportShardComplete(ReportShardCompleteRequest) returns (ReportShardCompleteResponse);
+  
+  // Epoch synchronization
+  rpc SyncEpoch(SyncEpochRequest) returns (SyncEpochResponse);
+  rpc BarrierWait(BarrierWaitRequest) returns (BarrierWaitResponse);
+  
+  // Checkpointing
+  rpc BeginCheckpoint(BeginCheckpointRequest) returns (BeginCheckpointResponse);
+  rpc CommitCheckpointShard(CommitCheckpointShardRequest) returns (CommitCheckpointShardResponse);
+  rpc FinalizeCheckpoint(FinalizeCheckpointRequest) returns (FinalizeCheckpointResponse);
+}
+
+// ==================== Worker Lifecycle ====================
+
+message RegisterWorkerRequest {
+  string worker_uuid = 1;
+  string hostname = 2;
+  uint32 port = 3;
+  map<string, string> capabilities = 4;
+  uint32 protocol_version = 5;
+}
+
+message RegisterWorkerResponse {
+  uint32 worker_id = 1;
+  uint64 current_epoch = 2;
+  uint64 current_step = 3;
+  repeated ShardAssignment initial_shards = 4;
+  uint64 fencing_token = 5;
+}
+
+message HeartbeatRequest {
+  uint32 worker_id = 1;
+  uint64 current_step = 2;
+  WorkerStatus status = 3;
+  ResourceMetrics metrics = 4;
+  uint64 fencing_token = 5;
+}
+
+message HeartbeatResponse {
+  bool acknowledged = 1;
+  repeated ShardReassignment reassignments = 2;
+  CheckpointTrigger checkpoint_trigger = 3;
+  uint64 fencing_token = 4;
+}
+
+message DeregisterWorkerRequest {
+  uint32 worker_id = 1;
+  string reason = 2;
+}
+
+message DeregisterWorkerResponse {
+  bool success = 1;
+}
+
+// ==================== Shard Assignment ====================
+
+message ShardAssignment {
+  uint32 shard_id = 1;
+  string object_key = 2;
+  uint64 byte_offset = 3;
+  uint64 byte_length = 4;
+  uint32 expected_crc32c = 5;
+}
+
+message ShardReassignment {
+  uint32 shard_id = 1;
+  ReassignmentAction action = 2;
+  string object_key = 3;
+}
+
+enum ReassignmentAction {
+  REASSIGNMENT_ACTION_UNSPECIFIED = 0;
+  REASSIGNMENT_ACTION_ADD = 1;
+  REASSIGNMENT_ACTION_REMOVE = 2;
+}
+
+message GetShardAssignmentRequest {
+  uint32 worker_id = 1;
+  string dataset_id = 2;
+}
+
+message GetShardAssignmentResponse {
+  repeated ShardAssignment shards = 1;
+}
+
+message ReportShardCompleteRequest {
+  uint32 worker_id = 1;
+  uint32 shard_id = 2;
+  uint64 records_processed = 3;
+}
+
+message ReportShardCompleteResponse {
+  ShardAssignment next_shard = 1;
+}
+
+// ==================== Epoch Synchronization ====================
+
+message SyncEpochRequest {
+  uint32 worker_id = 1;
+  uint64 epoch = 2;
+  uint64 step = 3;
+}
+
+message SyncEpochResponse {
+  bool proceed = 1;
+  uint64 global_step = 2;
+}
+
+message BarrierWaitRequest {
+  uint32 worker_id = 1;
+  string barrier_id = 2;
+}
+
+message BarrierWaitResponse {
+  bool released = 1;
+}
+
+// ==================== Checkpointing ====================
+
+message BeginCheckpointRequest {
+  uint32 worker_id = 1;
+  uint64 step = 2;
+}
+
+message BeginCheckpointResponse {
+  uint64 epoch = 1;
+  string pending_key_prefix = 2;
+}
+
+message CommitCheckpointShardRequest {
+  uint32 worker_id = 1;
+  uint64 epoch = 2;
+  string object_key = 3;
+  uint64 byte_size = 4;
+  uint32 crc32c = 5;
+  string etag = 6;
+  repeated string state_dict_keys = 7;
+}
+
+message CommitCheckpointShardResponse {
+  bool all_shards_complete = 1;
+}
+
+message FinalizeCheckpointRequest {
+  uint64 epoch = 1;
+}
+
+message FinalizeCheckpointResponse {
+  bool success = 1;
+  string manifest_etag = 2;
+}
+
+// ==================== Common Types ====================
+
+enum WorkerStatus {
+  WORKER_STATUS_UNSPECIFIED = 0;
+  WORKER_STATUS_IDLE = 1;
+  WORKER_STATUS_LOADING = 2;
+  WORKER_STATUS_TRAINING = 3;
+  WORKER_STATUS_CHECKPOINTING = 4;
+  WORKER_STATUS_SYNCING = 5;
+}
+
+message ResourceMetrics {
+  float cpu_percent = 1;
+  float memory_percent = 2;
+  float gpu_utilization = 3;
+  float gpu_memory_percent = 4;
+  uint64 bytes_read = 5;
+  uint64 bytes_written = 6;
+}
+
+message CheckpointTrigger {
+  uint64 epoch = 1;
+  uint64 step = 2;
+  bool force = 3;
+}

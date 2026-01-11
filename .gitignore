@@ -1,0 +1,65 @@
+# Rust
+**/target/
+**/*.rs.bk
+*.pdb
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+.env
+.venv
+venv/
+ENV/
+env/
+
+# Node.js
+**/node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+
+# Dashboard Build
+vortex-dashboard/dist/
+vortex-dashboard/.env.local
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Project Specific Logs & Temp
+*.log
+*.txt
+events.out.tfevents.*
+metrics_dump.txt
+build_log.txt
+readme.txt
+
+# Deprecated / Stale
+dtrainer-core/
+dtrainer-dashboard/
+dtrainer/
+
+# Local Data (MinIO volume mappings if any, or generated data)
+test_data/

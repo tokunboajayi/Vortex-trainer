@@ -1,0 +1,32 @@
+# Worker Dockerfile
+FROM rust:1.84-slim as builder
+
+WORKDIR /app
+# Install protoc for gRPC generation
+RUN apt-get update && apt-get install -y protobuf-compiler && rm -rf /var/lib/apt/lists/*
+
+COPY dtrainer-core/ ./
+# Remove lock if exists to avoid version mismatch
+RUN rm -f Cargo.lock
+
+# Build release binary
+RUN cargo build --release --bin worker
+
+# Runtime image with Python for training
+FROM python:3.11-slim
+
+RUN apt-get update && apt-get install -y \
+    ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /app
+
+# Install Python package (pure Python now)
+COPY dtrainer/ ./dtrainer/
+RUN pip install ./dtrainer
+
+# Copy built binary
+COPY --from=builder /app/target/release/worker /app/worker
+
+# Run worker
+CMD ["/app/worker"]

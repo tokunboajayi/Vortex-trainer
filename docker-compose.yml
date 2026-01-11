@@ -1,0 +1,105 @@
+version: "3.8"
+
+services:
+  # MinIO S3-compatible storage
+  minio:
+    image: minio/minio:latest
+    container_name: dtrainer-minio
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    environment:
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadmin
+    command: server /data --console-address ":9001"
+    volumes:
+      - minio-data:/data
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost:9000/minio/health/live" ]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # MinIO bucket setup
+  minio-init:
+    image: minio/mc:latest
+    depends_on:
+      minio:
+        condition: service_healthy
+    entrypoint: >
+      /bin/sh -c " mc alias set myminio http://minio:9000 minioadmin minioadmin; mc mb myminio/vortex --ignore-existing; mc mb myminio/checkpoints --ignore-existing; mc anonymous set download myminio/vortex; echo 'Buckets created successfully'; "
+
+  # Coordinator service
+  vortex-coordinator:
+    build:
+      context: ./vortex-core
+      dockerfile: Dockerfile
+    container_name: vortex-coordinator
+    ports:
+      - "50051:50051"
+      - "9100:9100" # Metrics
+    environment:
+      - RUST_LOG=info
+      - AWS_ACCESS_KEY_ID=minioadmin
+      - AWS_SECRET_ACCESS_KEY=minioadmin
+      - S3_ENDPOINT=http://minio:9000
+      - S3_BUCKET=vortex
+    depends_on:
+      - minio
+    networks:
+      - vortex-net
+    volumes:
+      - ./vortex-core:/app
+
+  vortex-worker:
+    build:
+      context: .
+      dockerfile: vortex/Dockerfile.worker
+    container_name: vortex-worker
+    environment:
+      - COORDINATOR_ADDR=http://vortex-coordinator:50051
+      - WORKER_ID=0
+      - S3_ENDPOINT=http://minio:9000
+      - S3_BUCKET=vortex
+      - AWS_ACCESS_KEY_ID=minioadmin
+      - AWS_SECRET_ACCESS_KEY=minioadmin
+    depends_on:
+      - vortex-coordinator
+    networks:
+      - vortex-net
+    volumes:
+      - ./vortex:/app/vortex
+      - ./examples:/app/examples
+
+  # Prometheus metrics (optional)
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: vortex-prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml
+    profiles:
+      - metrics
+
+  # Grafana dashboards (optional)
+  grafana:
+    image: grafana/grafana:latest
+    container_name: dtrainer-grafana
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+    volumes:
+      - grafana-data:/var/lib/grafana
+    profiles:
+      - metrics
+
+volumes:
+  minio-data:
+  grafana-data:
+
+
+networks:
+  default:
+    name: dtrainer-network

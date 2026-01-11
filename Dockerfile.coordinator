@@ -1,0 +1,28 @@
+# Coordinator Dockerfile
+FROM rust:1.84-slim as builder
+
+WORKDIR /app
+# Install protoc for gRPC generation
+RUN apt-get update && apt-get install -y protobuf-compiler && rm -rf /var/lib/apt/lists/*
+
+COPY dtrainer-core/ ./
+RUN rm -f Cargo.lock
+
+
+# Build release binary
+RUN cargo build --release --bin coordinator
+
+# Runtime image
+FROM debian:bookworm-slim
+
+RUN apt-get update && apt-get install -y \
+    ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /app
+
+# Copy built binary
+COPY --from=builder /app/target/release/coordinator /app/coordinator
+
+# Run coordinator
+CMD ["/app/coordinator"]
