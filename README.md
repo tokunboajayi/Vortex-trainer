@@ -27,10 +27,11 @@ graph TD
     end
 
     %% Connections
-    Coord -->|Metrics API (9100)| Dash
+    %% Connections
+    Coord -->|"Metrics API (9100)"| Dash
     PyTorch -->|Init| Runtime
-    Runtime -->|Register/Heartbeat| Coord
-    Loader -->|Fetch Shards| S3
+    Runtime -->|"Register/Heartbeat"| Coord
+    Loader -->|"Fetch Shards"| S3
     Runtime -->|Checkpoints| S3
 ```
 
