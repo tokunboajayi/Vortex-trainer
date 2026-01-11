@@ -1,5 +1,10 @@
 # Vortex: High-Performance Distributed Training Engine
 
+![Rust](https://img.shields.io/badge/rust-%23000000.svg?style=for-the-badge&logo=rust&logoColor=white)
+![Python](https://img.shields.io/badge/python-3670A0?style=for-the-badge&logo=python&logoColor=ffdd54)
+![React](https://img.shields.io/badge/react-%2320232a.svg?style=for-the-badge&logo=react&logoColor=%2361DAFB)
+![Docker](https://img.shields.io/badge/docker-%230db7ed.svg?style=for-the-badge&logo=docker&logoColor=white)
+
 **Vortex** (formerly DTrainer) is a next-generation distributed training system designed to optimize data loading, checkpointing, and worker coordination for large-scale PyTorch jobs. It leverages a high-performance **Rust backend** (`vortex-core`) seamlessly integrated with a **Python/PyTorch frontend**.
 
 ## 🚀 System Architecture
@@ -7,18 +12,18 @@
 ```mermaid
 graph TD
     subgraph "Infrastructure"
-        S3[(MinIO / S3 Object Store)]
+        S3[("MinIO / S3 Object Store")]
     end
 
     subgraph "Control Plane"
-        Coord[**Vortex Coordinator**<br/>(Rust / gRPC)]
-        Dash[**Mission Control**<br/>(React / Vite)]
+        Coord["**Vortex Coordinator**<br/>(Rust / gRPC)"]
+        Dash["**Mission Control**<br/>(React / Vite)"]
     end
 
     subgraph "Worker Node (Python + Rust)"
-        PyTorch[PyTorch Training Loop]
-        Runtime[**Vortex Runtime**<br/>(Python Async + Thread)]
-        Loader[**Rust DataLoader**<br/>(S3 Prefetching)]
+        PyTorch["PyTorch Training Loop"]
+        Runtime["**Vortex Runtime**<br/>(Python Async + Thread)"]
+        Loader["**Rust DataLoader**<br/>(S3 Prefetching)"]
     end
 
     %% Connections
